@@ -311,7 +311,7 @@ p.body + p.body{margin-top:.8em}
 }
 .toc-item .no{font-family:'Cinzel',serif;font-size:.95em;letter-spacing:.28em;
   color:var(--gold-dim);display:block;margin-bottom:.5em}
-.toc-item .name{font-size:1.6em;font-weight:600;letter-spacing:.14em}
+.toc-item .name{font-size:1.25em;font-weight:600;letter-spacing:.14em}
 .toc-item .desc{font-size:1.05em;color:var(--ink-soft);margin-top:.45em;letter-spacing:.05em}
 .toc-item::after{content:"❧";position:absolute;right:.4em;top:50%;translate:0 -50%;
   color:var(--gold-dim);opacity:0;transition:opacity .25s}
@@ -335,10 +335,10 @@ p.body + p.body{margin-top:.8em}
   .entry.static:hover{border-color:rgba(107,86,56,.35);background:none;box-shadow:none}
 }
 .entry :is(.t, .s, .tags){display:block}
-.entry .t{font-size:1.05em;font-weight:600;letter-spacing:.08em}
-.entry .s{margin-top:.5em;font-size:.74em;color:var(--ink-soft);line-height:1.7}
+.entry .t{font-size:1.25em;font-weight:600;letter-spacing:.08em}
+.entry .s{margin-top:.5em;font-size:1.05em;color:var(--ink-soft);line-height:1.7}
 .entry .tags{margin-top:.15em}
-.entry .tag{display:inline-block;font-size:.62em;border:1px solid rgba(107,86,56,.4);
+.entry .tag{display:inline-block;font-size:.95em;border:1px solid rgba(107,86,56,.4);
   border-radius:2em;padding:.1em .8em;margin:.5em .35em 0 0;color:var(--ink-soft)}
 
 /* 摘要內頁 */
