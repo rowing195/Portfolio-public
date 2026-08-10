@@ -9,6 +9,8 @@
 
 <em>翻閱一本書，而非滑過一個網頁 — 基於 Astro 的古典古籍互動作品集</em>
 
+**🔗 線上展示：[rowing195.github.io/Portfolio-public](https://rowing195.github.io/Portfolio-public/)**
+
 <!-- BADGES -->
 <img src="https://img.shields.io/github/last-commit/your-username/your-repo?style=flat&logo=git&logoColor=white&color=C9A227" alt="last-commit">
 <img src="https://img.shields.io/github/languages/top/your-username/your-repo?style=flat&color=C9A227" alt="repo-top-language">
