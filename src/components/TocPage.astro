@@ -10,16 +10,14 @@ const { items, pageno } = Astro.props;
   <div class="eyebrow">Index · 目錄</div>
   <h2 class="page-title">卷目</h2>
   <div class="ornament">─────&nbsp;✦&nbsp;─────</div>
-  <div class="item-scroll">
-    {
-      items.map((it) => (
-        <button class="toc-item" data-goto={it.goto}>
-          <span class="no">{it.no}</span>
-          <span class="name">{it.name}</span>
-          <span class="desc">{it.desc}</span>
-        </button>
-      ))
-    }
-  </div>
+  {
+    items.map((it) => (
+      <button class="toc-item" data-goto={it.goto}>
+        <span class="no">{it.no}</span>
+        <span class="name">{it.name}</span>
+        <span class="desc">{it.desc}</span>
+      </button>
+    ))
+  }
   <div class="pageno">· {pageno} ·</div>
 </section>

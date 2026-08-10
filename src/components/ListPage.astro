@@ -19,36 +19,34 @@ const { eyebrow, entries, pageno } = Astro.props;
 
 <section data-toc-btn>
   <div class="eyebrow">{eyebrow}</div>
-  <div class="item-scroll">
-    {
-      entries.map((e) =>
-        e.goto != null ? (
-          <button class="entry" data-goto={e.goto} data-goto-single={e.gotoSingle}>
-            <span class="t">{e.title}</span>
-            <span class="s">{e.summary}</span>
-            {e.tags.length > 0 && (
-              <span class="tags">
-                {e.tags.map((t) => (
-                  <span class="tag">{t}</span>
-                ))}
-              </span>
-            )}
-          </button>
-        ) : (
-          <div class="entry static">
-            <span class="t">{e.title}</span>
-            <span class="s">{e.summary}</span>
-            {e.tags.length > 0 && (
-              <span class="tags">
-                {e.tags.map((t) => (
-                  <span class="tag">{t}</span>
-                ))}
-              </span>
-            )}
-          </div>
-        )
+  {
+    entries.map((e) =>
+      e.goto != null ? (
+        <button class="entry" data-goto={e.goto} data-goto-single={e.gotoSingle}>
+          <span class="t">{e.title}</span>
+          <span class="s">{e.summary}</span>
+          {e.tags.length > 0 && (
+            <span class="tags">
+              {e.tags.map((t) => (
+                <span class="tag">{t}</span>
+              ))}
+            </span>
+          )}
+        </button>
+      ) : (
+        <div class="entry static">
+          <span class="t">{e.title}</span>
+          <span class="s">{e.summary}</span>
+          {e.tags.length > 0 && (
+            <span class="tags">
+              {e.tags.map((t) => (
+                <span class="tag">{t}</span>
+              ))}
+            </span>
+          )}
+        </div>
       )
-    }
-  </div>
+    )
+  }
   <div class="pageno">· {pageno} ·</div>
 </section>

@@ -171,6 +171,14 @@ body::after{
   display:flex; flex-direction:column;
 }
 .face.back{ transform:rotateY(180deg); border-radius:10px 4px 4px 10px; }
+/* 【2026-08-10】桌面跨頁模式原本沒有任何溢出保護(只有 .readme 摘要頁靠
+   fit-page.js 縮字兜底)。像目錄這種沒有 .readme 的頁面放大字級後,若內容
+   仍然放不下,原本會被 overflow:hidden 直接裁掉。這裡補上跟手機單頁模式
+   對稱的捲動兜底,只在 fit-page.js 判定「真的放不下」時才升級成捲動容器,
+   翻頁飛行中關閉,避免 3D 旋轉 + 捲動層同時存在(理由同手機版同日期註解)。 */
+.face.scrollable{ overflow-y:auto; scrollbar-width:none; }
+.face.scrollable::-webkit-scrollbar{ width:0; height:0; }
+.sheet.flying .face{ overflow:hidden; }
 /* 書脊陰影 */
 .face.front::after{content:"";position:absolute;inset:0;pointer-events:none;
   background:linear-gradient(90deg,rgba(70,45,15,.38),rgba(70,45,15,0) 14%);}
@@ -355,16 +363,12 @@ p.body + p.body{margin-top:.8em}
 }
 .seal-link span{color:var(--gold-bright)}
 
-/* ── 頁內捲動容器(時間軸/目錄/列表共用) ────────────────────
-   頁內捲動刻意做在內層 .item-scroll,而非 .face 自己:.face 是被 3D 旋轉的
+/* ── 學歷與經歷時間軸 ────────────────────────
+   頁內捲動刻意做在內層 .tl-scroll,而非 .face 自己:.face 是被 3D 旋轉的
    元素,直接讓它當捲動容器就會踩到 2026-07-20 記錄的那類光柵化破圖
    (旋轉 + 加速捲動層並存 → 只畫半頁)。內層容器不參與旋轉,安全。
-   min-height:0 是 flex 子項要能收縮的必要條件,少了它 overflow 不會生效。
-   【2026-08-10】原本只有時間軸頁(.tl-scroll)用這招,目錄、列表頁放大
-   字級後也可能放不下,改名成通用類別,TocPage/ListPage 一併套用——
-   這樣書脊陰影(.face::after)跟目錄返回鈕(.toc-btn)才不會跟著內容捲走
-   (它們是 .face 自己的子層,.face 不再是捲動容器就不受影響)。 */
-.item-scroll{
+   min-height:0 是 flex 子項要能收縮的必要條件,少了它 overflow 不會生效。 */
+.tl-scroll{
   flex:1 1 auto; min-height:0; overflow-y:auto;
   display:flex; flex-direction:column;
   touch-action:pan-y pinch-zoom;      /* 水平手勢留給滑動翻頁,與 .face 一致 */
@@ -372,11 +376,11 @@ p.body + p.body{margin-top:.8em}
   scrollbar-width:thin; scrollbar-color:rgba(201,164,92,.55) transparent;
 }
 /* 燙金細捲軸:常駐顯示,兼作「還可以往下滑」的提示 */
-.item-scroll::-webkit-scrollbar{width:3px}
-.item-scroll::-webkit-scrollbar-track{background:transparent}
-.item-scroll::-webkit-scrollbar-thumb{background:rgba(201,164,92,.55);border-radius:2px}
+.tl-scroll::-webkit-scrollbar{width:3px}
+.tl-scroll::-webkit-scrollbar-track{background:transparent}
+.tl-scroll::-webkit-scrollbar-thumb{background:rgba(201,164,92,.55);border-radius:2px}
 /* 翻頁飛行中收掉捲動層,同 .mode-single .sheet.flying .face 的理由 */
-.mode-single .sheet.flying .item-scroll{overflow:hidden}
+.mode-single .sheet.flying .tl-scroll{overflow:hidden}
 
 /* 軸線本體(同一條軸,kind 只換標記)。
    margin:auto 0 讓條目少的頁(學歷只有兩筆)垂直居中,看起來是刻意留白
