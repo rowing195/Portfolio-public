@@ -4,7 +4,13 @@
    雙層 drop-shadow filter 與高頻 DOM 火花每幀都逼 GPU 重新光柵化,
    在行動裝置上會卡頓破圖;canvas 每幀只重繪一張點陣圖,負擔極低。
    文字仍由 CSS mask 揭示(小面積重繪,便宜),畫布負責掃過時的火光。
-   時間軸與原 CSS 動畫逐項對齊(delay / duration / cubic-bezier 皆同)。
+
+   【2026-07-29】文字改由羽毛筆逐字寫出(quill-intro.js)後,本檔成為
+   開場的「後半段」:等三行墨跡寫完才點火,火線掃過封面邊框,文字上那道
+   掃光此時的意義從「揭示」變成「燙金」—— 與 CSS 的 qGild(墨→金)同步,
+   所以 texts[] 的時間改讀 --q-gild-*,不再是原本的揭示時間。
+   ⚠ 所有時間值都從 book.css 的 :root 讀取(見該處註解),本檔不再自行
+     寫死秒數;那些值必須以秒書寫,parseFloat 才讀得到。
    由 book.js 的開場程式呼叫 window.__burnIntro(coverEl)。 */
 (function(){
   'use strict';
@@ -41,6 +47,11 @@
   })();
 
   window.__burnIntro = function(cover){
+    const cs = getComputedStyle(document.documentElement);
+    const V = n => parseFloat(cs.getPropertyValue(n)) || 0;
+    /* 文字掃光 = 燙金,逐行對齊 CSS 的 qGild 延遲 */
+    const GILD = [V('--q-gild-latin'), V('--q-gild-title'), V('--q-gild-owner')];
+
     const canvas = document.createElement('canvas');
     canvas.className = 'burn-canvas';
     cover.append(canvas);
@@ -57,11 +68,13 @@
       texts = [...cover.querySelectorAll('.latin, h1, .owner')].map((el,i)=>{
         const r = el.getBoundingClientRect();
         return { x:r.left-c0.left, y:r.top-c0.top, w:r.width, h:r.height,
-                 delay:[.5,.8,1.2][i] };
+                 delay:GILD[i] };
       });
     }
     measure();
     addEventListener('resize', measure);
+    /* webfont 載入後行寬會變,掃光的起訖位置要重取(與 quill-intro.js 同理) */
+    if(document.fonts && document.fonts.ready) document.fonts.ready.then(measure);
 
     /* 沿框線(順時針,自左上起)取進度 s∈[0,1] 的座標 */
     function onFrame(s){
@@ -89,8 +102,9 @@
       }
     }
 
-    const TEXT_DUR=1.5, TRACE_DELAY=1.1, TRACE_DUR=1.8,
-          FADE_START=2.8, FADE_DUR=.7, SPARK_UNTIL=3.5, END=5.0;
+    const TEXT_DUR=V('--q-gild-dur'), TRACE_DELAY=V('--b-trace-at'), TRACE_DUR=V('--b-trace-dur'),
+          FADE_START=V('--b-fade-at'), FADE_DUR=V('--b-fade-dur'),
+          SPARK_FROM=V('--b-spark-at'), SPARK_UNTIL=V('--b-spark-until'), END=V('--b-end');
     let start=null, lastSpawn=0, lastTraceE=0;
 
     function tick(ts){
@@ -100,8 +114,10 @@
       ctx.clearRect(0,0,W,H);
       ctx.globalCompositeOperation = 'lighter';
 
-      /* 隨機火花(對應原 90ms 生成;canvas 便宜,120ms 即有相同密度感) */
-      if(now < SPARK_UNTIL && now-lastSpawn > .12){
+      /* 隨機火花(對應原 90ms 生成;canvas 便宜,120ms 即有相同密度感)。
+         【2026-07-29】加上 SPARK_FROM 下限:點火在書寫之後,前 3.4 秒
+         封面上不該有火花亂飛,否則「先寫字、後燙金」的敘事會被拆掉。 */
+      if(now > SPARK_FROM && now < SPARK_UNTIL && now-lastSpawn > .12){
         lastSpawn = now;
         spawn(W*(.08+Math.random()*.84), H*(.1+Math.random()*.8));
       }

@@ -6,6 +6,26 @@ interface Props {
 }
 const { latin, title, author } = Astro.props;
 
+/* 【2026-07-29】開場的羽毛筆書寫需要「逐字」的時間差,故封面三行文字都拆成
+   <span class="g">,並輸出 --i(該字在行內的序號)。各字的 animation-delay 由
+   calc(var(--q-*-at) + var(--i) * var(--q-*-stride)) 算出 —— 整條開場時間軸
+   只寫在 book.css 的 :root,quill-intro.js / burn-intro.js 也讀同一批自訂屬性,
+   不會有兩邊數字對不上的漂移(參見 book.js MQ_SINGLE 的教訓)。
+   空白也占一個序號(class 加 sp):筆會在空白處提筆略過,節奏才像手寫。
+   代價:逐字 span 會讓螢幕閱讀器逐字念(C、O、D、E、X…),故行元素掛
+   aria-label 提供完整字串 —— 有 aria-label 時 AT 一律忽略子節點內容。 */
+const esc = (s: string) =>
+  s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const glyphs = (s: string) =>
+  [...s]
+    .map((c, i) =>
+      c === ' '
+        ? `<span class="g sp" style="--i:${i}">&#160;</span>`
+        : `<span class="g" style="--i:${i}">${esc(c)}</span>`
+    )
+    .join('');
+const owner = `${author} 著`;
+
 /* 四角紋飾:雙弧線 + 四芒星,stroke/fill 用 currentColor,
    讓開場 burnFade 動畫的 color 變化能直接套用到 SVG 上 */
 const flourish = `<svg viewBox="0 0 40 40" aria-hidden="true">
@@ -55,9 +75,9 @@ const flourish = `<svg viewBox="0 0 40 40" aria-hidden="true">
   </svg>
 
   <div class="cover-inner">
-    <div class="latin" set:html={latin.split(' ').join('&nbsp;')} />
-    <h1>{title}</h1>
-    <div class="owner">{author} 著</div>
+    <div class="latin" aria-label={latin} set:html={glyphs(latin)} />
+    <h1 aria-label={title} set:html={glyphs(title)} />
+    <div class="owner" aria-label={owner} set:html={glyphs(owner)} />
     <div class="rule"></div>
     <div class="hint">✦ 輕觸以開卷 ✦</div>
   </div>

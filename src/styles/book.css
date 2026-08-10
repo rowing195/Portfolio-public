@@ -6,6 +6,37 @@
   --parch-1:#efe3c3; --parch-2:#e0cfa4; --ink:#40301e; --ink-soft:#6b5638;
   --arcane:#7fae9e;
   --flip-dur: .95s;
+
+  /* ── 首訪開場時間軸(單一來源) ─────────────────────────────
+     【2026-07-29】羽毛筆書寫 → 火線掃過 → 墨跡燙金。此處是整段開場
+     時間軸唯一的定義處:CSS 直接用於 animation-delay/duration,
+     quill-intro.js 與 burn-intro.js 以 getComputedStyle 讀取同一批值。
+     ⚠ 一律以「秒」書寫(.35s,不可寫 350ms):JS 端用 parseFloat 取值。
+     stride = 逐字下筆間隔,dur = 單字墨跡揭示時長;
+     stride == dur 時筆尖正好壓在墨跡邊緣(書名如此,最像在寫字),
+     stride < dur 則筆略微領先、墨跡在後面漫開(拉丁文/作者行,較流暢)。 */
+  --q-in:.35s;                                        /* 筆自右上飛入的時長 */
+  --q-latin-at:.35s;  --q-latin-stride:.06s; --q-latin-dur:.2s;   /* 12 字 → .35~1.07 */
+  --q-title-at:1.35s; --q-title-stride:.3s;  --q-title-dur:.3s;   /*  5 字 → 1.35~2.85 */
+  --q-owner-at:3s;    --q-owner-stride:.055s;--q-owner-dur:.2s;   /* 12 字 → 3~3.66 */
+  --q-out:3.85s; --q-out-dur:.5s;                     /* 筆提起上飄淡出 */
+  /* 燙金:深墨 → 金箔。逐行(不是逐字)—— 整行寫完才一起上金 */
+  --q-gild-dur:1.15s;
+  --q-gild-latin:3.45s; --q-gild-title:3.65s; --q-gild-owner:3.9s;
+  /* 邊框火線與火花(burn-intro.js) */
+  --b-trace-at:3.5s; --b-trace-dur:1.8s;
+  --b-fade-at:5.3s;  --b-fade-dur:.7s;
+  --b-spark-at:3.4s; --b-spark-until:5.8s;
+  --b-end:6.6s;                                       /* 收工:兩張 canvas 移除 */
+  /* CSS 專屬的裝飾淡入(無 JS 對應,故直接寫在各規則上):
+     邊框 3.7~5s、四角紋飾 4.9~5.7s、法陣 4.4~6.2s、分隔線 4.2~5.2s、
+     提示 5.6~6.5s 之後轉為呼吸迴圈。 */
+  /* 未燙金的濕墨色。深墨寫在深色皮革上本質上就是低對比:此值與封面中央的
+     皮革底(約 #3a2314)對比約 2.5:1,再深一階(#71491d,約 1.9:1)實測近乎
+     看不見 —— 開場有三秒半是「還沒燙金」的狀態,那三秒半讀不到字是實在的
+     體驗成本。金色 var(--gold) 對皮革約 6:1,所以這個亮度仍讓燙金那一下
+     有明顯的躍升。標題另有 h1 既有的 drop-shadow 幫忙分離邊緣。 */
+  --ink-wet:#8a5a24;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
@@ -132,7 +163,9 @@ body::after{
   color:var(--ink);
   border-radius:4px 10px 10px 4px;
   box-shadow:inset 0 0 60px rgba(120,90,40,.18);
-  font-size:clamp(9.5px, calc(var(--pw) * 0.043), 26px);
+  /* 字級鎖整數 px,減少 3D 合成層下的次像素模糊(round() 不支援的舊瀏覽器
+     退回原本的小數字級,不影響排版邏輯,純視覺退化) */
+  font-size:round(nearest, clamp(9.5px, calc(var(--pw) * 0.043), 26px), 1px);
   padding:2.1em 1.9em 1.7em;
   display:flex; flex-direction:column;
 }
@@ -194,16 +227,28 @@ body::after{
 }
 .cover .cover-inner{position:relative;z-index:1;margin:auto}
 .cover .latin{font-family:'Cinzel Decorative',serif;font-size:.72em;letter-spacing:.42em;
-  color:var(--gold-dim);margin-bottom:.9em}
+  color:var(--gold-dim);margin-bottom:.9em;white-space:nowrap}
 /* 金箔標題:直向多段金屬漸層 + 玻璃陰影,凹凸浮雕感 */
 .cover h1{font-size:1.85em;font-weight:700;letter-spacing:.32em;text-indent:.32em;
   margin-bottom:.55em;
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,.4));}
+/* 【2026-07-29】金箔漸層由 h1 下移到逐字 span。原因是開場的羽毛筆書寫要
+   逐字遮罩揭示,而 CSS 遮罩只遮得住「元素自己畫的東西」—— 漸層留在 h1 上時,
+   background-clip:text 產生的金色是 h1 畫的,遮住子 span 也遮不掉,
+   還沒寫到的字會先亮在那裡。漸層為垂直向且各字行內盒等高,下移後外觀不變。 */
+.cover h1 .g{
   background-image:linear-gradient(180deg,
     #f8e7b5 0%, #e8c98a 34%, #b78c4e 52%, #f0d69c 72%, #caa25c 100%);
   -webkit-background-clip:text; background-clip:text;
-  color:transparent;
-  filter:drop-shadow(0 2px 5px rgba(0,0,0,.4));}
-.cover .owner{font-size:.92em;letter-spacing:.24em;color:var(--gold)}
+  color:transparent;}
+.cover .owner{font-size:.92em;letter-spacing:.24em;color:var(--gold);white-space:nowrap}
+/* 逐字 span(開場書寫用,見文末開場區塊)。inline-block 有兩個理由,且必須
+   在此常態套用、不能只在 .igniting 下加:
+   (a) 遮罩與 background-clip:text 都需要一個量得到寬高的盒;
+   (b) 行內盒的高度是字型的 content area、inline-block 是 line-height,
+       兩者不同 ⇒ 只在開場切換會讓金箔漸層的縮放在首訪與再訪之間跳掉。
+   代價是 inline-block 之間可以斷行,故 .latin/.owner 已加 white-space:nowrap。 */
+.cover :is(.latin, h1, .owner) .g{display:inline-block}
 .cover .rule{width:38%;height:1px;margin:1.15em auto;
   background:linear-gradient(90deg,transparent,var(--gold),transparent)}
 .cover .hint{font-size:.74em;letter-spacing:.3em;color:var(--gold-dim);
@@ -265,11 +310,11 @@ p.body + p.body{margin-top:.8em}
   .toc-item:hover::after{opacity:1}
 }
 
-/* 條目(專案/論文/經歷) */
+/* 條目(專案/論文/經歷):標題/摘要/標籤各自獨立成一行,三行並排對齊。 */
 .entry{
   display:block;width:100%;text-align:left;background:none;font-family:inherit;
   border:1px solid rgba(107,86,56,.35);border-radius:4px;cursor:pointer;
-  padding:.85em 1em;color:var(--ink);margin-top:.9em;
+  padding:1.4em 1.15em;color:var(--ink);margin-top:1.3em;
   /* 【2026-07-20】同 .toc-item:原 transition:all,列表頁一次有 5~6 個,
      翻頁時全部一起被監看/重繪。收斂成三個明確屬性。 */
   transition:border-color .25s, background-color .25s, box-shadow .25s;
@@ -280,19 +325,12 @@ p.body + p.body{margin-top:.8em}
     box-shadow:0 2px 10px rgba(120,90,40,.2)}
   .entry.static:hover{border-color:rgba(107,86,56,.35);background:none;box-shadow:none}
 }
-.entry .t{font-size:.95em;font-weight:600;letter-spacing:.08em}
-.entry .s{font-size:.7em;color:var(--ink-soft);margin-top:.35em;line-height:1.7}
+.entry :is(.t, .s, .tags){display:block}
+.entry .t{font-size:1.05em;font-weight:600;letter-spacing:.08em}
+.entry .s{margin-top:.5em;font-size:.74em;color:var(--ink-soft);line-height:1.7}
+.entry .tags{margin-top:.15em}
 .entry .tag{display:inline-block;font-size:.62em;border:1px solid rgba(107,86,56,.4);
   border-radius:2em;padding:.1em .8em;margin:.5em .35em 0 0;color:var(--ink-soft)}
-
-/* 【2026-07-26】stacked 變體:.t/.s 預設是 inline,標題/摘要/標籤會全擠成一行。
-   Chapter III 僅兩個條目,拆成三行並加大留白,才不會下半頁全空。
-   class 掛在 .entry 而非 section —— book.js 的 makeFace 只搬 childNodes。 */
-.entry.stacked{padding:1.4em 1.15em;margin-top:1.3em}
-.entry.stacked :is(.t, .s, .tags){display:block}
-.entry.stacked .t{font-size:1.05em}
-.entry.stacked .s{margin-top:.5em;font-size:.74em}
-.entry.stacked .tags{margin-top:.15em}
 
 /* 摘要內頁 */
 .readme h4{font-size:.92em;letter-spacing:.12em;margin:1.1em 0 .4em;color:var(--ink);
@@ -467,36 +505,68 @@ body:not(.mode-single) .scroll-thumb{ display:none; }
    各元素以 translateZ(0) 提升為獨立合成層,重繪範圍限縮在元素自身。 */
 .burn-canvas{position:absolute; inset:0; width:100%; height:100%;
   pointer-events:none; z-index:6}
+/* 羽毛筆疊在最上層:筆要壓在文字與火光之上,否則看起來像在紙背後移動 */
+.quill-canvas{position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:7}
 .igniting{transform:translateZ(0)}
 
 .igniting .cover-frame{border-color:transparent; outline-color:transparent;
-  animation:frameIn 1.3s 1.8s forwards}
+  animation:frameIn 1.3s 3.7s forwards}
 @keyframes frameIn{to{border-color:var(--gold-dim); outline-color:rgba(201,164,92,.35)}}
-.igniting .cover-frame i{opacity:0; animation:burnFade .8s 2.6s forwards}
+.igniting .cover-frame i{opacity:0; animation:burnFade .8s 4.9s forwards}
 .igniting .sigil{opacity:0;
-  animation:sigilIn 1.8s 2.2s forwards, sigilSpin 140s linear infinite}
+  animation:sigilIn 1.8s 4.4s forwards, sigilSpin 140s linear infinite}
 @keyframes sigilIn{to{opacity:.11}}
 @keyframes burnFade{
   0%{opacity:0; color:#ff9a3c}
   55%{opacity:1; color:#ffb066}
   100%{opacity:1; color:var(--gold)}}
 
-.igniting :is(.latin, h1, .owner){
-  transform:translateZ(0);
-  -webkit-mask-image:linear-gradient(100deg,#000 42%,transparent 58%);
-  mask-image:linear-gradient(100deg,#000 42%,transparent 58%);
-  -webkit-mask-size:280% 100%; mask-size:280% 100%;
-  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
-  animation:burnIn 1.5s cubic-bezier(.5,.05,.45,.95) both}
-.igniting .latin{animation-delay:.5s}
-.igniting h1{animation-delay:.8s}
-.igniting .owner{animation-delay:1.2s}
-@keyframes burnIn{
-  0%{-webkit-mask-position:120% 0; mask-position:120% 0; color:#3d2412}
-  35%{color:#ff9a3c}
-  100%{-webkit-mask-position:0% 0; mask-position:0% 0}}
+/* ── 羽毛筆書寫 ────────────────────────────────────────────
+   【2026-07-29 經使用者要求】封面三行文字改以羽毛筆逐字寫出,取代原本
+   整行一次掃過的 burnIn。分工:
+     · CSS(此處)—— 逐字斜向遮罩揭示墨跡 + 整行的墨→金轉換。都是
+       單次、小面積的動畫,比讓 canvas 去畫中文字形便宜太多。
+     · quill-intro.js —— 只畫那支筆(筆桿羽片預先渲染成貼圖)與筆尖濕墨。
+       筆尖 x 由下方遮罩的幾何反推,故兩者永遠對得上,見該檔註解。
+     · burn-intro.js —— 寫完後的火線與燙金掃光。
 
-.igniting .rule{transform:scaleX(0); animation:ruleIn 1s 2s forwards}
+   遮罩幾何(改動這三個數字前務必同步 quill-intro.js 的 EDGE_A/EDGE_B):
+   mask-size 200%、漸層中點約在 61%,則 mask-position P% 時墨跡邊緣落在字寬的
+   (1.22 - P/100) 處。P 自 132% → 0% ⇒ 邊緣自 -.1w 掃到 1.22w,略微包住整個字,
+   不像單純的 120%→0% 那樣頭尾各空轉三成時間。
+   終點必須正好是 0%:此時遮罩剛好覆蓋 [0, 2w],字所在的 [0, w] 落在漸層的
+   0~50%(全黑區止於 56%)⇒ 保證最後完全不透明。取 12% 之類的中間值會讓字的
+   右緣永久停在漸層的淡出段上 —— 目前靠 letter-spacing 的尾隙擋著看不出來,
+   但字距一改就會露出一條半透明的邊,而 .igniting 是不會被移除的。
+   P 為負則相反:遮罩左移出字框,no-repeat 的界外是透明(= 隱藏),左邊會被切掉。 */
+.igniting :is(.latin, h1, .owner) .g{
+  color:var(--ink-wet);
+  -webkit-mask-image:linear-gradient(104deg,#000 0%,#000 56%,transparent 66%);
+  mask-image:linear-gradient(104deg,#000 0%,#000 56%,transparent 66%);
+  -webkit-mask-size:200% 100%; mask-size:200% 100%;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  animation:qWrite var(--q-dur) linear both, qGild var(--q-gild-dur) ease-out forwards;
+  animation-delay:calc(var(--q-at) + var(--i) * var(--q-stride)), var(--q-gild-at);
+}
+@keyframes qWrite{
+  from{-webkit-mask-position:132% 0; mask-position:132% 0}
+  to  {-webkit-mask-position:0% 0;   mask-position:0% 0}}
+/* 燙金:h1 的金色來自 span 自己的 background-clip:text,墨色只要淡出就會
+   露出底下的金箔漸層,故終點是「透明的墨色」而非 transparent 關鍵字 ——
+   兩端同色相才保證整段淡出都是褐色,不會在中途偏灰。
+   拉丁文/作者行沒有漸層,直接把 color 收到各自的金色。 */
+@keyframes qGild{to{color:var(--q-gild-to)}}
+.igniting .latin{--q-at:var(--q-latin-at); --q-stride:var(--q-latin-stride);
+  --q-dur:var(--q-latin-dur); --q-gild-at:var(--q-gild-latin); --q-gild-to:var(--gold-dim)}
+.igniting h1{--q-at:var(--q-title-at); --q-stride:var(--q-title-stride);
+  --q-dur:var(--q-title-dur); --q-gild-at:var(--q-gild-title); --q-gild-to:rgba(138,90,36,0)}
+.igniting .owner{--q-at:var(--q-owner-at); --q-stride:var(--q-owner-stride);
+  --q-dur:var(--q-owner-dur); --q-gild-at:var(--q-gild-owner); --q-gild-to:var(--gold)}
+/* 空白不必揭示(nbsp 本來就看不見),但仍留在序號裡讓筆在此提筆略過 */
+.igniting .g.sp{animation:none}
+
+.igniting .rule{transform:scaleX(0); animation:ruleIn 1s 4.2s forwards}
 @keyframes ruleIn{
   0%{transform:scaleX(0);
      background:linear-gradient(90deg,transparent,#ff9a3c,transparent)}

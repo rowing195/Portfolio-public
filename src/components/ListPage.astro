@@ -13,14 +13,8 @@ interface Props {
     gotoSingle?: number;
   }[];
   pageno: string;
-  /** 'stacked':標題/摘要/標籤各佔一行,條目較高。條目數少的章節(如
-      Chapter III 只有兩個)用它填滿版面;條目多的章節不要開,會撐爆頁面。
-      注意 class 必須掛在 .entry 上,不能掛在 <section>:book.js 的 makeFace
-      只搬 section 的 childNodes,section 自身的 class 會被丟掉。 */
-  variant?: 'stacked';
 }
-const { eyebrow, entries, pageno, variant } = Astro.props;
-const mod = variant === 'stacked' ? ' stacked' : '';
+const { eyebrow, entries, pageno } = Astro.props;
 ---
 
 <section data-toc-btn>
@@ -28,7 +22,7 @@ const mod = variant === 'stacked' ? ' stacked' : '';
   {
     entries.map((e) =>
       e.goto != null ? (
-        <button class={`entry${mod}`} data-goto={e.goto} data-goto-single={e.gotoSingle}>
+        <button class="entry" data-goto={e.goto} data-goto-single={e.gotoSingle}>
           <span class="t">{e.title}</span>
           <span class="s">{e.summary}</span>
           {e.tags.length > 0 && (
@@ -40,7 +34,7 @@ const mod = variant === 'stacked' ? ' stacked' : '';
           )}
         </button>
       ) : (
-        <div class={`entry static${mod}`}>
+        <div class="entry static">
           <span class="t">{e.title}</span>
           <span class="s">{e.summary}</span>
           {e.tags.length > 0 && (

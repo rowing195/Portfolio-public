@@ -4,6 +4,7 @@
    避免 Astro/Vite 對引擎做任何打包轉換(遷移指南第 5-2 點)。 */
 import bookCss from '../styles/book.css?raw';
 import bookJs from '../scripts/book.js?raw';
+import quillJs from '../scripts/quill-intro.js?raw';
 import burnJs from '../scripts/burn-intro.js?raw';
 import ambientJs from '../scripts/ambient.js?raw';
 import fitPageJs from '../scripts/fit-page.js?raw';
@@ -44,8 +45,9 @@ const { title, tocPage } = Astro.props;
       <slot />
     </template>
 
-    <!-- 開場 canvas 特效需先於引擎載入(book.js 末段會同步呼叫 __burnIntro) -->
+    <!-- 開場 canvas 特效需先於引擎載入(book.js 末段會同步呼叫 __quillIntro/__burnIntro) -->
     <script is:inline set:html={ambientJs}></script>
+    <script is:inline set:html={quillJs}></script>
     <script is:inline set:html={burnJs}></script>
     <script is:inline set:html={bookJs}></script>
     <!-- 排版後逐頁量測,內文過長時自動縮字保住底部留白 -->

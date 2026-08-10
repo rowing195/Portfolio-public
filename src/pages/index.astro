@@ -80,7 +80,7 @@ for (const ch of site.chapters) {
     const orgsOf = (a: typeof timeline) => [...new Set(a.map((e) => e.org))];
 
     const expEntries: Record<string, any>[] = [];
-    add('list', { eyebrow: ch.listEyebrow, entries: expEntries, variant: 'stacked', pageno: num() });
+    add('list', { eyebrow: ch.listEyebrow, entries: expEntries, pageno: num() });
     /* 保險:學歷必須落在奇數頁才能與工作對開 */
     if (P % 2 === 0) add('blank', { pageno: num() });
 

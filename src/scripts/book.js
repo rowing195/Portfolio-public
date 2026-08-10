@@ -332,6 +332,10 @@
     const cover = document.querySelector('.face.cover');
     if(!cover) return;
     cover.classList.add('igniting');
+    /* 【2026-07-29】開場分兩段:羽毛筆寫字(quill-intro.js)→ 點火燙金
+       (burn-intro.js)。兩者同一幀啟動、各自以 CSS 的 :root 時間軸排程,
+       所以這裡的呼叫順序不影響時序,只決定 canvas 的疊放先後。 */
+    if(window.__quillIntro) window.__quillIntro(cover);
     if(window.__burnIntro) window.__burnIntro(cover);
   })();
 })();
