@@ -96,7 +96,7 @@ body::after{
     linear-gradient(90deg,#8a6f3c,#e8c98a 45%,#a37f45),
     linear-gradient(90deg, rgba(138,111,60,0), #a08048 55%, #d9b87a),
     linear-gradient(90deg, rgba(138,111,60,0), #a08048 55%, #d9b87a);
-  background-size:18px 100%, 18px 100%, 32% 14px, 32% 14px;
+  background-size:18px 100%, 18px 100%, 100% 14px, 100% 14px;
   background-position:right top, right top, right top, right bottom;
   background-repeat:no-repeat;
   border-radius:0 18px 18px 0;
