@@ -164,8 +164,11 @@ body::after{
   border-radius:4px 10px 10px 4px;
   box-shadow:inset 0 0 60px rgba(120,90,40,.18);
   /* 字級鎖整數 px,減少 3D 合成層下的次像素模糊(round() 不支援的舊瀏覽器
-     退回原本的小數字級,不影響排版邏輯,純視覺退化) */
-  font-size:round(nearest, clamp(9.5px, calc(var(--pw) * 0.043), 26px), 1px);
+     退回原本的小數字級,不影響排版邏輯,純視覺退化)。
+     上限原本 26px,在 1080p 就已封頂,螢幕越大字級占比反而越小(頁面本身
+     隨 --pw 持續放大)。拉到 58px 對應 4K(3840×2160)在 100% 縮放下算出的
+     --pw≈1339px 所需字級,讓字級在 2K/4K 能繼續跟著頁面放大。 */
+  font-size:round(nearest, clamp(9.5px, calc(var(--pw) * 0.043), 58px), 1px);
   padding:2.1em 1.9em 1.7em;
   display:flex; flex-direction:column;
 }
