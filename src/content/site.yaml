@@ -16,30 +16,30 @@ epilogue: |-
 
 # 章節定義:id 對應 content collection(experience 走 timeline.yaml 的學歷與經歷時間軸)
 chapters:
-  - id: software
-    no: CHAPTER I
-    name: 軟體作品
-    desc: 親手打造的程式與工具
-    ornament: ⚙
-    tagline: |-
-      以程式碼鍛造之精華,
-      皆錄於右頁。
-    listEyebrow: Chapter I · 軟體作品
-  - id: papers
-    no: CHAPTER II
-    name: 論文研究
-    desc: 探索未知所留下的文獻
-    ornament: 🜍
-    tagline: |-
-      向未知世界叩問後,
-      留下的文獻與紀錄。
-    listEyebrow: Chapter II · 論文研究
   - id: experience
-    no: CHAPTER III
+    no: CHAPTER I
     name: 學歷與經歷
     desc: 修習的學識與效力過的公司
     ornament: ⚔
     tagline: |-
       求學途中修習的學識,
       與旅途中效力過的公司。
-    listEyebrow: Chapter III · 學歷與經歷
+    listEyebrow: Chapter I · 學歷與經歷
+  - id: software
+    no: CHAPTER II
+    name: 軟體作品
+    desc: 親手打造的程式與工具
+    ornament: ⚙
+    tagline: |-
+      以程式碼鍛造之精華,
+      皆錄於右頁。
+    listEyebrow: Chapter II · 軟體作品
+  - id: papers
+    no: CHAPTER III
+    name: 論文研究
+    desc: 探索未知所留下的文獻
+    ornament: 🜍
+    tagline: |-
+      向未知世界叩問後,
+      留下的文獻與紀錄。
+    listEyebrow: Chapter III · 論文研究
