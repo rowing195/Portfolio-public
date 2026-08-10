@@ -64,6 +64,17 @@
     p.ember = i < Math.round(N*.3);
     ps.push(p);
   }
+  /* 【2026-08-10】洗牌後才逐一亮相,避免前 30% 名額固定是餘燼、
+     導致「先冒出來的全是餘燼、後面才輪到塵光」的不自然順序 */
+  for(let i=ps.length-1;i>0;i--){
+    const j = Math.floor(Math.random()*(i+1));
+    [ps[i], ps[j]] = [ps[j], ps[i]];
+  }
+
+  /* 【2026-08-10 經使用者要求】不要整批同時出現:從 1 顆開始,RAMP 秒內
+     線性增加到滿額 N 顆,比起單純淡入,逐顆冒出來的節奏更接近自然飄浮。 */
+  const RAMP = 5;
+  let rampStart = null;
 
   let last = null;
   function tick(ts){
@@ -72,11 +83,16 @@
     last = ts;
     const t = ts/1000;
 
+    if(rampStart === null) rampStart = ts;
+    const elapsed = (ts - rampStart)/1000;
+    const active = Math.min(N, 1 + Math.floor((elapsed/RAMP) * (N-1)));
+
     ctx.setTransform(DPR,0,0,DPR,0,0);
     ctx.clearRect(0,0,W,H);
     ctx.globalCompositeOperation = 'lighter';
 
-    for(const p of ps){
+    for(let i=0;i<active;i++){
+      const p = ps[i];
       p.y -= p.vy*dt;
       if(p.y < -20) reset(p, false);
       const x = p.x + Math.sin(t*p.sf + p.ph)*p.sway*p.z;
@@ -93,8 +109,8 @@
   /* 【2026-08-10 經使用者要求】首訪開場期間(quill-intro.js + burn-intro.js)
      三個 canvas rAF 迴圈同時搶影格預算,較弱顯卡上會卡頓。判斷條件與
      book.js 的開場判斷逐字相同(book.js 尚未執行到寫入 codex-visited,
-     此時讀到的還是舊值),塵光延後到開場結束 + 3s 後才開始重繪;
-     非首訪 / 手機 / 開場已跳過的情況維持原本立即啟動。 */
+     此時讀到的還是舊值),塵光延後到開場結束 + 1s 才開始畫、再花 RAMP 秒
+     長到滿額;非首訪 / 手機 / 開場已跳過的情況維持原本立即啟動(仍會逐顆長出)。 */
   let introPlaying = false;
   try{ introPlaying = !localStorage.getItem('codex-visited'); }
   catch(e){ introPlaying = true; }
@@ -102,7 +118,7 @@
 
   if(introPlaying){
     const bEnd = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--b-end')) || 6.6;
-    setTimeout(() => requestAnimationFrame(tick), (bEnd + 3) * 1000);
+    setTimeout(() => requestAnimationFrame(tick), (bEnd + 1) * 1000);
   } else {
     requestAnimationFrame(tick);
   }
