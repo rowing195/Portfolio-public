@@ -5,6 +5,9 @@
    小步調降該頁 .readme 字級(下限 0.78em),直到連同頁碼列一起
    放得下為止,保證底部留白且不裁字。
    手機單頁模式(.mode-single)頁內可捲動,不需要也不套用縮字。
+   【2026-08-10】沒有 .readme 的頁面(如目錄)桌面模式原本完全沒有溢出
+   兜底,字級放大後可能被裁掉;改為量測後升級成捲動容器,跟手機模式同一
+   套 .scrollable 機制,只是桌面版對應的 CSS 是新增的(見 book.css)。
    於 book.js 之後載入(此時 build() 已完成、.face 已生成)。
    ═══════════════════════════════════════════════════════════════ */
 (() => {
@@ -16,16 +19,16 @@
     document.querySelectorAll('#book .face').forEach((face) => {
       const rd = face.querySelector('.readme');
       if (rd) rd.style.fontSize = '';       /* 還原後重新量測(含放大視窗時回彈) */
-      if (single) {
+      if (single || !rd) {
         /* 【2026-07-20】單頁模式不縮字(可捲動),但只有「真的放不下」的頁
            才升級成捲動容器。原本 20 頁全掛 overflow-y:auto,等於 20 個
            可捲動合成層,行動裝置翻頁時會出現只畫一半/整頁空白。
-           實測 20 頁裡只有 3 頁會溢出。 */
+           實測 20 頁裡只有 3 頁會溢出。沒有 .readme 的頁面(如目錄)無字
+           可縮,桌面模式也走這條路徑,只是升級的門檻一樣是「真的放不下」。 */
         face.classList.toggle('scrollable', face.scrollHeight - face.clientHeight > 1);
         return;
       }
       face.classList.remove('scrollable');
-      if (!rd) return;
       let s = 1;
       while (face.scrollHeight - face.clientHeight > 1 && s > MIN) {
         s -= STEP;
