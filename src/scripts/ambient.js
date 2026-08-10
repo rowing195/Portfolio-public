@@ -89,5 +89,21 @@
     ctx.globalAlpha = 1;
     requestAnimationFrame(tick);   /* 分頁隱藏時 rAF 自動暫停 */
   }
-  requestAnimationFrame(tick);
+
+  /* 【2026-08-10 經使用者要求】首訪開場期間(quill-intro.js + burn-intro.js)
+     三個 canvas rAF 迴圈同時搶影格預算,較弱顯卡上會卡頓。判斷條件與
+     book.js 的開場判斷逐字相同(book.js 尚未執行到寫入 codex-visited,
+     此時讀到的還是舊值),塵光延後到開場結束 + 3s 後才開始重繪;
+     非首訪 / 手機 / 開場已跳過的情況維持原本立即啟動。 */
+  let introPlaying = false;
+  try{ introPlaying = !localStorage.getItem('codex-visited'); }
+  catch(e){ introPlaying = true; }
+  if(location.hash === '#burn') introPlaying = true;
+
+  if(introPlaying){
+    const bEnd = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--b-end')) || 6.6;
+    setTimeout(() => requestAnimationFrame(tick), (bEnd + 3) * 1000);
+  } else {
+    requestAnimationFrame(tick);
+  }
 })();
