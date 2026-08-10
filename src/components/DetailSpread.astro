@@ -1,0 +1,37 @@
+---
+/* 條目摘要跨頁:左頁(eyebrow + 標題 + 內文前半)+ 右頁(內文後半 + seal-link)。
+   一律成對輸出兩個 <section>,確保排頁奇偶對齊。 */
+interface Props {
+  eyebrow: string;
+  pageTitle: string;
+  /** 長標題(論文)縮小字級,對應原檔 inline style */
+  small?: boolean;
+  leftHtml: string;
+  rightHtml: string;
+  link?: string;
+  linkLabel?: string;
+  pagenoLeft: string;
+  pagenoRight: string;
+}
+const { eyebrow, pageTitle, small = false, leftHtml, rightHtml, link, linkLabel, pagenoLeft, pagenoRight } =
+  Astro.props;
+---
+
+<section data-toc-btn>
+  <div class="eyebrow">{eyebrow}</div>
+  <h2 class="page-title" style={small ? 'font-size:1.1em' : undefined}>{pageTitle}</h2>
+  <div class="readme" set:html={leftHtml} />
+  <div class="pageno">· {pagenoLeft} ·</div>
+</section>
+
+<section data-toc-btn>
+  <div class="readme" set:html={rightHtml} />
+  {
+    link && (
+      <button class="seal-link" data-href={link}>
+        {linkLabel}&nbsp;<span>↗</span>
+      </button>
+    )
+  }
+  <div class="pageno">· {pagenoRight} ·</div>
+</section>

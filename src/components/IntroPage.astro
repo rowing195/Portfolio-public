@@ -1,0 +1,21 @@
+---
+interface Props {
+  quote: string;
+  text: string;
+  pageno: string;
+}
+const { quote, text, pageno } = Astro.props;
+const lines = (s: string) => s.trim().split('\n');
+---
+
+<section>
+  <div class="eyebrow">Prologue · 扉頁</div>
+  <div class="quote">
+    {lines(quote).map((l, i) => <>{i > 0 && <br />}{l}</>)}<br /><br />
+    <span style="font-size:.8em">
+      {lines(text).map((l, i) => <>{i > 0 && <br />}{l}</>)}
+    </span>
+  </div>
+  <div class="ornament">❦ ❦ ❦</div>
+  <div class="pageno">· {pageno} ·</div>
+</section>

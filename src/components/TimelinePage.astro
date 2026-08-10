@@ -1,0 +1,46 @@
+---
+/* 時間軸頁:學歷與工作各佔對開的一頁,共用同一份 timeline.yaml 與同一套樣式。
+   內容過長時由 .tl-scroll 頁內捲動 —— 不縮字,也不會被 .face 的
+   overflow:hidden 靜靜裁掉(fit-page.js 只保護含 .readme 的頁)。 */
+interface Props {
+  eyebrow: string;
+  title: string;
+  entries: {
+    kind: 'work' | 'edu';
+    when: string;
+    role: string;
+    org: string;
+    points: string[];
+  }[];
+  pageno: string;
+}
+const { eyebrow, title, entries, pageno } = Astro.props;
+---
+
+<section data-toc-btn>
+  <div class="eyebrow">{eyebrow}</div>
+  <h2 class="page-title">{title}</h2>
+  <div class="tl-scroll">
+    <div class="timeline">
+      {
+        entries.map((e) => (
+          <div class:list={['tl-item', e.kind]}>
+            <div class="when">{e.when}</div>
+            <div class="role">
+              {e.role}
+              <span class="org"> · {e.org}</span>
+            </div>
+            {e.points.length > 0 && (
+              <ul class="tl-points">
+                {e.points.map((p) => (
+                  <li>{p}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))
+      }
+    </div>
+  </div>
+  <div class="pageno">· {pageno} ·</div>
+</section>

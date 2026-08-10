@@ -1,0 +1,191 @@
+---
+/* 組書:蒐集內容 → 排頁 → 算 goto → 渲染進 <template id="tpl-pages">。
+   goto 規則(遷移指南第 1-2 點):攤開狀態 f 顯示左頁 2f-1、右頁 2f,
+   跳到左頁頁碼 P 的跨頁 data-goto = (P+1)/2,全部由此檔計算,不人工填寫。 */
+import { load as loadYaml } from 'js-yaml';
+import siteYamlRaw from '../content/site.yaml?raw';
+import timelineYamlRaw from '../content/experience/timeline.yaml?raw';
+import { marked } from 'marked';
+import { getCollection } from 'astro:content';
+import { siteSchema, timelineSchema } from '../content/config';
+import BookLayout from '../layouts/BookLayout.astro';
+import CoverPage from '../components/CoverPage.astro';
+import IntroPage from '../components/IntroPage.astro';
+import TocPage from '../components/TocPage.astro';
+import ChapterPage from '../components/ChapterPage.astro';
+import ListPage from '../components/ListPage.astro';
+import DetailSpread from '../components/DetailSpread.astro';
+import TimelinePage from '../components/TimelinePage.astro';
+import EpiloguePage from '../components/EpiloguePage.astro';
+
+const site = siteSchema.parse(loadYaml(siteYamlRaw));
+const timeline = timelineSchema.parse(loadYaml(timelineYamlRaw));
+
+/* ── Markdown → .readme 內文 HTML(段落補上原檔的 .body 樣式) ── */
+const md = (src: string) =>
+  (marked.parse(src.trim()) as string).replace(/<p>/g, '<p class="body">');
+
+/* <!-- pagebreak --> 之前排左頁、之後排右頁;無標記時依空行區塊對半分,
+   溢出交給手機模式的頁內捲動。 */
+function splitBody(body: string): [string, string] {
+  const parts = body.split(/<!--\s*pagebreak\s*-->/);
+  if (parts.length >= 2) return [md(parts[0]), md(parts.slice(1).join('\n\n'))];
+  const blocks = body.trim().split(/\n{2,}/);
+  const cut = Math.ceil(blocks.length / 2);
+  return [md(blocks.slice(0, cut).join('\n\n')), md(blocks.slice(cut).join('\n\n'))];
+}
+
+/* ── 排頁 ── */
+type Unit = { kind: string; props: Record<string, any> };
+const units: Unit[] = [];
+let P = 0; // 下一個要推入的頁碼(0 起算,順序即頁碼)
+const add = (kind: string, props: Record<string, any> = {}, span = 1) => {
+  units.push({ kind, props });
+  P += span;
+};
+let n = 0; // 章節起算的阿拉伯頁碼(扉頁/目錄用羅馬數字,不計入)
+const num = () => String(++n);
+
+const defaultLinkLabel: Record<string, string> = {
+  software: '前往 GitHub 詳閱全文',
+  papers: '閱讀論文全文',
+};
+
+add('cover', { latin: site.bookTitleLatin, title: site.bookTitle, author: site.author });
+add('intro', { quote: site.intro.quote, text: site.intro.text, pageno: 'I' });
+
+const tocItems: { no: string; name: string; desc: string; goto: number }[] = [];
+const tocPage = P; // 目錄頁碼,傳入 BookLayout 供引擎的 ⌂ 目錄鈕使用
+add('toc', { items: tocItems, pageno: 'II' });
+
+for (const ch of site.chapters) {
+  /* 章名頁必須是奇數頁(左頁);不滿足時插入空白裝飾頁補位 */
+  if (P % 2 === 0) add('blank', { pageno: num() });
+  tocItems.push({ no: ch.no, name: ch.name, desc: ch.desc, goto: (P + 1) / 2 });
+  add('chapter', {
+    no: ch.no,
+    name: ch.name,
+    ornament: ch.ornament,
+    tagline: ch.tagline,
+    pageno: num(),
+  });
+
+  if (ch.id === 'experience') {
+    /* 結構刻意與前兩章一致:章名頁(左) + 列表頁(右) → 內容跨頁。
+       章名頁必為奇數頁,故其後 P 為偶數(右頁),正好放列表頁;這同時
+       把學歷/工作推到下一個跨頁的(奇,偶)上,兩頁才會真正對開 ——
+       否則會被拆到相鄰兩個跨頁,永遠不會同時出現在畫面上。 */
+    const eduList = timeline.filter((e) => e.kind === 'edu');
+    const workList = timeline.filter((e) => e.kind === 'work');
+    const orgsOf = (a: typeof timeline) => [...new Set(a.map((e) => e.org))];
+
+    const expEntries: Record<string, any>[] = [];
+    add('list', { eyebrow: ch.listEyebrow, entries: expEntries, variant: 'stacked', pageno: num() });
+    /* 保險:學歷必須落在奇數頁才能與工作對開 */
+    if (P % 2 === 0) add('blank', { pageno: num() });
+
+    const eduPage = P;
+    add('timeline', {
+      eyebrow: `${ch.no} · 學歷背景`,
+      title: '學歷背景',
+      entries: eduList,
+      pageno: num(),
+    });
+    const workPage = P;
+    add('timeline', {
+      eyebrow: `${ch.no} · 工作經歷`,
+      title: '工作經歷',
+      entries: workList,
+      pageno: num(),
+    });
+
+    /* 列表頁的兩個跳轉。goto 為跨頁編號(左右頁同屬一個跨頁,故兩者相同),
+       gotoSingle 才是單頁模式真正要去的頁 —— 工作在右頁,少了它手機上
+       會落回學歷那頁。摘要與標籤一律由 timeline.yaml 推導,不另外寫死。 */
+    const spreadOf = (p: number) => Math.ceil(p / 2);
+    expEntries.push(
+      {
+        title: '學歷背景',
+        summary: `${eduList.length} 筆學位紀錄`,
+        tags: orgsOf(eduList),
+        goto: spreadOf(eduPage),
+        gotoSingle: eduPage,
+      },
+      {
+        title: '工作經歷',
+        summary: `${workList.length} 段工作經歷`,
+        tags: orgsOf(workList),
+        goto: spreadOf(workPage),
+        gotoSingle: workPage,
+      }
+    );
+    continue;
+  }
+
+  const entries = (await getCollection(ch.id)).sort((a, b) => a.data.order - b.data.order);
+  const listEntries: Record<string, any>[] = [];
+  add('list', { eyebrow: ch.listEyebrow, entries: listEntries, pageno: num() });
+
+  for (const e of entries) {
+    const d = e.data;
+    if (d.placeholder) {
+      listEntries.push({ title: d.title, summary: d.summary, tags: d.tags });
+      continue;
+    }
+    /* 此刻 P 即該條目摘要左頁的頁碼(列表頁在偶數頁,左頁必為奇數) */
+    listEntries.push({ title: d.title, summary: d.summary, tags: d.tags, goto: (P + 1) / 2 });
+    const [leftHtml, rightHtml] = splitBody(e.body ?? '');
+    add(
+      'spread',
+      {
+        eyebrow: d.eyebrow ?? (ch.id === 'papers' ? 'Paper · 摘要' : `Project · ${d.title}`),
+        pageTitle: d.pageTitle ?? d.title,
+        small: ch.id === 'papers',
+        leftHtml,
+        rightHtml,
+        link: d.link,
+        linkLabel: d.linkLabel ?? defaultLinkLabel[ch.id],
+        pagenoLeft: num(),
+        pagenoRight: num(),
+      },
+      2
+    );
+  }
+}
+
+add('epilogue', { epilogue: site.epilogue });
+/* 總頁數為奇數時結尾補一空白頁 */
+if (P % 2 === 1) add('blank', {});
+
+const latinTitle = site.bookTitleLatin.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+const title = `${site.bookTitle} · ${latinTitle}`;
+---
+
+<BookLayout title={title} tocPage={tocPage}>
+  {
+    units.map((u) =>
+      u.kind === 'cover' ? (
+        <CoverPage {...(u.props as any)} />
+      ) : u.kind === 'intro' ? (
+        <IntroPage {...(u.props as any)} />
+      ) : u.kind === 'toc' ? (
+        <TocPage {...(u.props as any)} />
+      ) : u.kind === 'chapter' ? (
+        <ChapterPage {...(u.props as any)} />
+      ) : u.kind === 'list' ? (
+        <ListPage {...(u.props as any)} />
+      ) : u.kind === 'spread' ? (
+        <DetailSpread {...(u.props as any)} />
+      ) : u.kind === 'timeline' ? (
+        <TimelinePage {...(u.props as any)} />
+      ) : u.kind === 'epilogue' ? (
+        <EpiloguePage {...(u.props as any)} />
+      ) : (
+        <section>
+          <div class="ornament" style="margin:auto">❦</div>
+          {u.props.pageno && <div class="pageno">· {u.props.pageno} ·</div>}
+        </section>
+      )
+    )
+  }
+</BookLayout>

@@ -1,0 +1,54 @@
+---
+/* 書的外殼:<head>、Google Fonts、scene/book 骨架與 <template> 頁面容器。
+   book.css / book.js 以 ?raw 匯入後用 is:inline 原樣輸出,
+   避免 Astro/Vite 對引擎做任何打包轉換(遷移指南第 5-2 點)。 */
+import bookCss from '../styles/book.css?raw';
+import bookJs from '../scripts/book.js?raw';
+import burnJs from '../scripts/burn-intro.js?raw';
+import ambientJs from '../scripts/ambient.js?raw';
+import fitPageJs from '../scripts/fit-page.js?raw';
+
+interface Props {
+  title: string;
+  /** 目錄所在頁碼(0 起算),由組書程式計算後傳給引擎 */
+  tocPage: number;
+}
+const { title, tocPage } = Astro.props;
+---
+
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <link rel="icon" type="image/svg+xml" href={`${import.meta.env.BASE_URL}favicon.svg`} />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=Cinzel:wght@400;600&family=Noto+Serif+TC:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style is:inline set:html={bookCss}></style>
+  </head>
+  <body>
+    <div class="scene">
+      <div class="book" id="book">
+        <div class="base"></div>
+        <!-- sheets injected by JS -->
+      </div>
+    </div>
+
+    <!-- ══ 頁面內容範本:順序即頁碼(0 起算),由 index.astro 組書產生 ══ -->
+    <template id="tpl-pages" data-toc-page={tocPage}>
+      <slot />
+    </template>
+
+    <!-- 開場 canvas 特效需先於引擎載入(book.js 末段會同步呼叫 __burnIntro) -->
+    <script is:inline set:html={ambientJs}></script>
+    <script is:inline set:html={burnJs}></script>
+    <script is:inline set:html={bookJs}></script>
+    <!-- 排版後逐頁量測,內文過長時自動縮字保住底部留白 -->
+    <script is:inline set:html={fitPageJs}></script>
+  </body>
+</html>

@@ -1,0 +1,537 @@
+:root{
+  --pw: min(45vw, calc(88vh / 1.42));      /* 單頁寬:高佔 88vh、攤開不超過 90vw */
+  --ph: calc(var(--pw) * 1.42);            /* 單頁高 */
+  --leather-1:#3a2314; --leather-2:#241207;
+  --gold:#c9a45c; --gold-bright:#e8c98a; --gold-dim:#8a6f3c;
+  --parch-1:#efe3c3; --parch-2:#e0cfa4; --ink:#40301e; --ink-soft:#6b5638;
+  --arcane:#7fae9e;
+  --flip-dur: .95s;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family:'Noto Serif TC', serif;
+  background:
+    radial-gradient(ellipse at 50% 30%, #1d1410 0%, #120b08 55%, #070403 100%);
+  color:var(--parch-1);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+/* ── 桌面木紋暗景 ─────────────────────────── */
+body::before{
+  content:""; position:fixed; inset:0; pointer-events:none; opacity:.5;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.05 0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>");
+}
+/* ── 燭光呼吸:整室光線緩慢明滅(只動 opacity,GPU 合成,不重繪) ── */
+body::after{
+  content:""; position:fixed; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse 70% 55% at 50% 32%, rgba(255,186,100,.12), transparent 70%);
+  animation:candleBreath 6.5s ease-in-out infinite;
+}
+@keyframes candleBreath{
+  0%,100%{opacity:.5} 42%{opacity:.95} 58%{opacity:.75} 72%{opacity:1}
+}
+/* ── 塵光粒子 ─────────────────────────────── */
+/* 【2026-07-11 canvas 化】原 18 顆 DOM .mote(每顆 blur filter 各佔一合成層)
+   改由 ambient.js 的單一 canvas 繪製:粒子更多、有景深/搖曳/明滅與偶發餘燼,
+   每幀只重繪一張點陣圖,行動裝置負擔更低。 */
+.ambient-canvas{
+  position:fixed; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:5;
+}
+/* ── 舞台 ─────────────────────────────────── */
+.scene{
+  position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+  perspective:2600px;
+}
+.book{
+  position:relative; width:var(--pw); height:var(--ph);
+  transform-style:preserve-3d;
+  transition:transform 1s cubic-bezier(.4,.1,.2,1);
+  filter:drop-shadow(0 30px 45px rgba(0,0,0,.65));
+}
+.book.open{ transform:translateX(calc(var(--pw) / 2)); }
+/* 闔書時右側露出的鎏金書口(頁緣燙金),開卷後淡出。
+   【2026-07-19】改為包角造型:整層鋪在封面之後(translateZ(-2px)),
+   右緣頁疊與上下鑲邊的塗層都畫得比露出量大(右 18px、上下 14px),
+   被封面遮住的部分看不見,實際只露出右 7px、上下 3px 的金邊;
+   右上/右下以 18px 圓角順著封面 14px 圓角包角,
+   上下鑲邊向左漸隱、平滑接合進封面上下沿 */
+.book::before{
+  content:""; position:absolute; top:-3px; bottom:-3px; left:0; right:-7px;
+  pointer-events:none;
+  background-image:
+    repeating-linear-gradient(180deg, rgba(60,35,10,.35) 0 2px, transparent 2px 4px),
+    linear-gradient(90deg,#8a6f3c,#e8c98a 45%,#a37f45),
+    linear-gradient(90deg, rgba(138,111,60,0), #a08048 55%, #d9b87a),
+    linear-gradient(90deg, rgba(138,111,60,0), #a08048 55%, #d9b87a);
+  background-size:18px 100%, 18px 100%, 32% 14px, 32% 14px;
+  background-position:right top, right top, right top, right bottom;
+  background-repeat:no-repeat;
+  border-radius:0 18px 18px 0;
+  transform:translateZ(-2px);
+  transition:opacity .45s;
+}
+.book.open::before{opacity:0}
+/* 【2026-07-19】闔書時左側的皮革書脊:圓脊受光 + 五道竹節(上亮下影)+ 內外燙金邊線,
+   與右側書口對稱成「左脊右口」的正確裝幀;開卷後同書口一併淡出 */
+.book::after{
+  content:""; position:absolute; top:-0.5%; bottom:-0.5%; left:-12px; width:15px;
+  background:
+    repeating-linear-gradient(180deg,
+      transparent 0 8.4%,
+      rgba(0,0,0,.42) 8.4% 9%,
+      rgba(232,201,138,.28) 9% 9.6%,
+      rgba(122,78,32,.6) 9.6% 10.6%,
+      rgba(0,0,0,.45) 10.6% 11.2%,
+      transparent 11.2% 20%),
+    linear-gradient(90deg,
+      rgba(201,164,92,.4) 0 1px, transparent 1px 3px,
+      rgba(201,164,92,.22) 3px 4px, transparent 4px),
+    linear-gradient(90deg,#1a0d04,#4c2c12 42%,#2a1608 85%,#170b03);
+  border-radius:6px 0 0 6px;
+  box-shadow:inset 0 6px 10px rgba(0,0,0,.5), inset 0 -6px 10px rgba(0,0,0,.5);
+  transform:translateZ(-2px);
+  transition:opacity .45s;
+}
+.book.open::after{opacity:0}
+
+/* 底板(打開後左右皮革底) */
+.base{
+  position:absolute; top:-1.2%; height:102.4%;
+  left:calc(var(--pw) * -1 - 10px); width:calc(var(--pw) * 2 + 20px);
+  border-radius:10px 16px 16px 10px;
+  background:linear-gradient(120deg,var(--leather-1),var(--leather-2) 70%);
+  box-shadow:inset 0 0 0 2px rgba(201,164,92,.25), inset 0 0 40px rgba(0,0,0,.7);
+  opacity:0; transition:opacity .6s .25s; z-index:0;
+}
+.base::before,.base::after{ /* 書頁側邊紙疊 */
+  content:""; position:absolute; top:1.4%; height:97%; width:calc(50% - 14px);
+  background:repeating-linear-gradient(90deg,#d9c9a2 0 2px,#bfa87c 2px 3px);
+  opacity:.9;
+}
+.base::before{left:8px;  border-radius:6px 0 0 6px;}
+.base::after {right:8px; border-radius:0 6px 6px 0;}
+.book.open .base{opacity:1}
+
+/* ── 書頁 sheet ───────────────────────────── */
+.sheet{
+  position:absolute; inset:0;
+  transform-style:preserve-3d;
+  transform-origin:left center;
+  /* --fd 由 goTo() 逐張寫入(連翻時中間張較短);未設定時用預設 --flip-dur */
+  transition:transform var(--fd, var(--flip-dur)) cubic-bezier(.35,.05,.2,1);
+}
+.sheet.flipped{ transform:rotateY(-180deg); }
+.face{
+  position:absolute; inset:0; overflow:hidden;
+  -webkit-backface-visibility:hidden; backface-visibility:hidden;
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.06 0'/></filter><rect width='200' height='200' filter='url(%23n)'/></svg>"),
+    linear-gradient(135deg,var(--parch-1) 0%,var(--parch-2) 100%);
+  color:var(--ink);
+  border-radius:4px 10px 10px 4px;
+  box-shadow:inset 0 0 60px rgba(120,90,40,.18);
+  font-size:clamp(9.5px, calc(var(--pw) * 0.043), 26px);
+  padding:2.1em 1.9em 1.7em;
+  display:flex; flex-direction:column;
+}
+.face.back{ transform:rotateY(180deg); border-radius:10px 4px 4px 10px; }
+/* 書脊陰影 */
+.face.front::after{content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(90deg,rgba(70,45,15,.38),rgba(70,45,15,0) 14%);}
+.face.back::after {content:"";position:absolute;inset:0;pointer-events:none;
+  background:linear-gradient(-90deg,rgba(70,45,15,.38),rgba(70,45,15,0) 14%);}
+
+/* ── 封面 / 封底內頁 ──────────────────────── */
+.cover{
+  background:
+    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.55' numOctaves='3'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.12 0'/></filter><rect width='220' height='220' filter='url(%23n)'/></svg>"),
+    radial-gradient(ellipse at 32% 25%, #4c2f1a 0%, var(--leather-1) 45%, var(--leather-2) 100%);
+  color:var(--gold); cursor:pointer;
+  align-items:center; justify-content:center; text-align:center;
+  border-radius:8px 14px 14px 8px;
+  box-shadow:inset 0 0 0 2px rgba(0,0,0,.5), inset 0 0 50px rgba(0,0,0,.55);
+}
+/* 環境光掃:一道柔和斜光每 9 秒掠過封面(含金箔字上的反光),
+   純 transform 位移,合成層便宜;初次延遲 6s,避開開場燃燒動畫 */
+.cover::before{
+  content:""; position:absolute; top:0; bottom:0; left:-100%; width:300%;
+  z-index:3; pointer-events:none;
+  background:linear-gradient(115deg,
+    transparent 46%, rgba(255,238,196,.05) 49%,
+    rgba(255,244,214,.10) 50%, rgba(255,238,196,.05) 51%, transparent 54%);
+  transform:translateX(-55%);
+  animation:coverSheen 9s 6s ease-in-out infinite;
+}
+@keyframes coverSheen{
+  0%{transform:translateX(-55%)} 18%{transform:translateX(55%)} 100%{transform:translateX(55%)}
+}
+.cover-frame{
+  position:absolute; inset:5.5%;
+  border:2px solid var(--gold-dim);
+  outline:1px solid rgba(201,164,92,.35); outline-offset:5px;
+  pointer-events:none;
+  box-shadow:0 0 26px rgba(232,201,138,.10), inset 0 0 26px rgba(232,201,138,.06);
+}
+/* 四角紋飾(SVG 雙弧線+四芒星,stroke 用 currentColor 以吃到開場動畫的變色) */
+.cover-frame i{position:absolute;font-style:normal;color:var(--gold);
+  width:2.1em;height:2.1em;line-height:0;}
+.cover-frame i svg{width:100%;height:100%;display:block}
+.cover-frame i.tl{top:-2px;left:-2px}
+.cover-frame i.tr{top:-2px;right:-2px;transform:rotate(90deg)}
+.cover-frame i.br{bottom:-2px;right:-2px;transform:rotate(180deg)}
+.cover-frame i.bl{bottom:-2px;left:-2px;transform:rotate(270deg)}
+/* 奧術法陣底紋:極淡金,140 秒轉一圈(純 transform) */
+.cover .sigil{
+  position:absolute; width:86%; aspect-ratio:1; left:50%; top:50%;
+  color:var(--gold); opacity:.11; pointer-events:none;
+  animation:sigilSpin 140s linear infinite;
+}
+@keyframes sigilSpin{
+  from{transform:translate(-50%,-50%) rotate(0deg)}
+  to{transform:translate(-50%,-50%) rotate(360deg)}
+}
+.cover .cover-inner{position:relative;z-index:1;margin:auto}
+.cover .latin{font-family:'Cinzel Decorative',serif;font-size:.72em;letter-spacing:.42em;
+  color:var(--gold-dim);margin-bottom:.9em}
+/* 金箔標題:直向多段金屬漸層 + 玻璃陰影,凹凸浮雕感 */
+.cover h1{font-size:1.85em;font-weight:700;letter-spacing:.32em;text-indent:.32em;
+  margin-bottom:.55em;
+  background-image:linear-gradient(180deg,
+    #f8e7b5 0%, #e8c98a 34%, #b78c4e 52%, #f0d69c 72%, #caa25c 100%);
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent;
+  filter:drop-shadow(0 2px 5px rgba(0,0,0,.4));}
+.cover .owner{font-size:.92em;letter-spacing:.24em;color:var(--gold)}
+.cover .rule{width:38%;height:1px;margin:1.15em auto;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.cover .hint{font-size:.74em;letter-spacing:.3em;color:var(--gold-dim);
+  animation:hintPulse 2.6s ease-in-out infinite}
+@keyframes hintPulse{0%,100%{opacity:.45}50%{opacity:1}}
+
+/* ── 內頁通用元素 ─────────────────────────── */
+.eyebrow{font-family:'Cinzel',serif;font-size:.66em;letter-spacing:.34em;
+  color:var(--ink-soft);text-transform:uppercase;margin-bottom:.7em}
+.ornament{color:var(--gold-dim);text-align:center;font-size:.85em;
+  letter-spacing:.6em;text-indent:.6em;margin:.7em 0}
+h2.page-title{font-size:1.45em;font-weight:700;letter-spacing:.16em;color:var(--ink);
+  margin-bottom:.25em}
+h3.chapter{font-size:1.7em;font-weight:700;letter-spacing:.3em;color:var(--ink);
+  text-align:center;margin:.4em 0 .3em}
+.chapter-no{font-family:'Cinzel',serif;text-align:center;font-size:.72em;
+  letter-spacing:.5em;color:var(--gold-dim)}
+p.body{font-size:.86em;line-height:1.95;text-align:justify;color:var(--ink)}
+p.body + p.body{margin-top:.8em}
+.quote{font-size:.95em;line-height:2.1;text-align:center;color:var(--ink-soft);
+  margin:auto 0;letter-spacing:.08em}
+.pageno{margin-top:auto;padding-top:1em;text-align:center;font-family:'Cinzel',serif;
+  font-size:.62em;letter-spacing:.3em;color:var(--ink-soft)}
+.toc-btn{
+  position:absolute;top:1em;right:1.35em;font-size:.62em;letter-spacing:.22em;
+  color:var(--ink-soft);background:none;border:1px solid rgba(107,86,56,.45);
+  border-radius:3px;padding:.35em .8em;cursor:pointer;font-family:inherit;
+  transition:color .25s, border-color .25s, background-color .25s;
+}
+.face.back .toc-btn{right:auto;left:1.35em}
+@media (hover:hover) and (pointer:fine){
+  .toc-btn:hover{color:var(--ink);border-color:var(--gold-dim);background:rgba(201,164,92,.12)}
+}
+
+/* 目錄 */
+.toc-item{
+  display:block;width:100%;text-align:left;background:none;font-family:inherit;
+  border:none;border-bottom:1px solid rgba(107,86,56,.3);cursor:pointer;
+  padding:1.05em .3em;color:var(--ink);position:relative;
+  /* 【2026-07-20 手機卡頓修復】原為 transition:all .25s,而 :hover 會改
+     padding-left —— 那是會觸發重排的屬性。觸控裝置點一下之後 :hover 會黏住,
+     於是翻頁動畫一開始就同時在跑「重排 + 重繪」,目錄頁與列表頁因此明顯卡頓
+     (純內容頁沒有這類元件,所以很順)。
+     對策:只過渡合成器友善的屬性,縮排改用 transform 位移子元素。 */
+  transition:background-color .25s;
+}
+@media (hover:hover) and (pointer:fine){
+  .toc-item > *{transition:transform .25s}
+  .toc-item:hover{background:rgba(201,164,92,.14)}
+  .toc-item:hover > *{transform:translateX(.8em)}
+}
+.toc-item .no{font-family:'Cinzel',serif;font-size:.62em;letter-spacing:.28em;
+  color:var(--gold-dim);display:block;margin-bottom:.4em}
+.toc-item .name{font-size:1.06em;font-weight:600;letter-spacing:.14em}
+.toc-item .desc{font-size:.72em;color:var(--ink-soft);margin-top:.35em;letter-spacing:.05em}
+.toc-item::after{content:"❧";position:absolute;right:.4em;top:50%;translate:0 -50%;
+  color:var(--gold-dim);opacity:0;transition:opacity .25s}
+@media (hover:hover) and (pointer:fine){
+  .toc-item:hover::after{opacity:1}
+}
+
+/* 條目(專案/論文/經歷) */
+.entry{
+  display:block;width:100%;text-align:left;background:none;font-family:inherit;
+  border:1px solid rgba(107,86,56,.35);border-radius:4px;cursor:pointer;
+  padding:.85em 1em;color:var(--ink);margin-top:.9em;
+  /* 【2026-07-20】同 .toc-item:原 transition:all,列表頁一次有 5~6 個,
+     翻頁時全部一起被監看/重繪。收斂成三個明確屬性。 */
+  transition:border-color .25s, background-color .25s, box-shadow .25s;
+}
+.entry.static{cursor:default}
+@media (hover:hover) and (pointer:fine){
+  .entry:hover{border-color:var(--gold-dim);background:rgba(201,164,92,.13);
+    box-shadow:0 2px 10px rgba(120,90,40,.2)}
+  .entry.static:hover{border-color:rgba(107,86,56,.35);background:none;box-shadow:none}
+}
+.entry .t{font-size:.95em;font-weight:600;letter-spacing:.08em}
+.entry .s{font-size:.7em;color:var(--ink-soft);margin-top:.35em;line-height:1.7}
+.entry .tag{display:inline-block;font-size:.62em;border:1px solid rgba(107,86,56,.4);
+  border-radius:2em;padding:.1em .8em;margin:.5em .35em 0 0;color:var(--ink-soft)}
+
+/* 【2026-07-26】stacked 變體:.t/.s 預設是 inline,標題/摘要/標籤會全擠成一行。
+   Chapter III 僅兩個條目,拆成三行並加大留白,才不會下半頁全空。
+   class 掛在 .entry 而非 section —— book.js 的 makeFace 只搬 childNodes。 */
+.entry.stacked{padding:1.4em 1.15em;margin-top:1.3em}
+.entry.stacked :is(.t, .s, .tags){display:block}
+.entry.stacked .t{font-size:1.05em}
+.entry.stacked .s{margin-top:.5em;font-size:.74em}
+.entry.stacked .tags{margin-top:.15em}
+
+/* 摘要內頁 */
+.readme h4{font-size:.92em;letter-spacing:.12em;margin:1.1em 0 .4em;color:var(--ink);
+  border-left:3px solid var(--gold-dim);padding-left:.6em}
+.readme ul{list-style:none;font-size:.8em;line-height:1.9;color:var(--ink)}
+.readme li::before{content:"✦";color:var(--gold-dim);margin-right:.6em;font-size:.8em}
+
+/* 外部連結印記 */
+.seal-link{
+  margin-top:auto;align-self:flex-end;
+  font-family:inherit;font-size:.78em;letter-spacing:.14em;
+  color:#f4e6c8;background:linear-gradient(135deg,#6d4a26,#4a2f14);
+  border:1px solid var(--gold-dim);border-radius:4px;
+  padding:.7em 1.3em;cursor:pointer;
+  box-shadow:0 3px 12px rgba(0,0,0,.3), inset 0 0 12px rgba(232,201,138,.15);
+  transition:box-shadow .3s, transform .3s;
+}
+@media (hover:hover) and (pointer:fine){
+  .seal-link:hover{box-shadow:0 3px 18px rgba(201,164,92,.45), inset 0 0 16px rgba(232,201,138,.3);
+    transform:translateY(-2px)}
+}
+.seal-link span{color:var(--gold-bright)}
+
+/* ── 學歷與經歷時間軸 ────────────────────────
+   頁內捲動刻意做在內層 .tl-scroll,而非 .face 自己:.face 是被 3D 旋轉的
+   元素,直接讓它當捲動容器就會踩到 2026-07-20 記錄的那類光柵化破圖
+   (旋轉 + 加速捲動層並存 → 只畫半頁)。內層容器不參與旋轉,安全。
+   min-height:0 是 flex 子項要能收縮的必要條件,少了它 overflow 不會生效。 */
+.tl-scroll{
+  flex:1 1 auto; min-height:0; overflow-y:auto;
+  display:flex; flex-direction:column;
+  touch-action:pan-y pinch-zoom;      /* 水平手勢留給滑動翻頁,與 .face 一致 */
+  overscroll-behavior:contain;         /* 捲到底不牽動外層 */
+  scrollbar-width:thin; scrollbar-color:rgba(201,164,92,.55) transparent;
+}
+/* 燙金細捲軸:常駐顯示,兼作「還可以往下滑」的提示 */
+.tl-scroll::-webkit-scrollbar{width:3px}
+.tl-scroll::-webkit-scrollbar-track{background:transparent}
+.tl-scroll::-webkit-scrollbar-thumb{background:rgba(201,164,92,.55);border-radius:2px}
+/* 翻頁飛行中收掉捲動層,同 .mode-single .sheet.flying .face 的理由 */
+.mode-single .sheet.flying .tl-scroll{overflow:hidden}
+
+/* 軸線本體(同一條軸,kind 只換標記)。
+   margin:auto 0 讓條目少的頁(學歷只有兩筆)垂直居中,看起來是刻意留白
+   而非沒排完;溢出時 auto margin 自動收為 0,不像 justify-content:center
+   會把頂端切掉而捲不回去。 */
+.timeline{margin:auto 0}
+.tl-item{position:relative;padding:.45em 0 .6em 1.5em;border-left:1px solid rgba(107,86,56,.4)}
+.tl-item::before{content:"";position:absolute;left:-4.5px;top:.85em;width:8px;height:8px;
+  border-radius:50%;background:var(--gold-dim);box-shadow:0 0 6px rgba(201,164,92,.5)}
+/* 學歷:空心秘青環 —— 在同一條軸上但一眼可與工作條目區分 */
+.tl-item.edu::before{background:var(--parch-1);border:1.5px solid var(--arcane);
+  box-shadow:0 0 6px rgba(127,174,158,.45)}
+.tl-item .when{font-family:'Cinzel',serif;font-size:.62em;letter-spacing:.2em;color:var(--gold-dim)}
+.tl-item.edu .when{color:var(--arcane)}
+/* 職稱與單位同一行,省下每個條目約 1.1em 的頁高 */
+.tl-item .role{font-size:.9em;font-weight:600;margin:.15em 0 0;letter-spacing:.08em}
+.tl-item .role .org{font-size:.82em;font-weight:400;color:var(--ink-soft);letter-spacing:.04em}
+/* 細項:沿用 .readme 的 ✦ 項目符號慣例 */
+.tl-points{list-style:none;margin:.3em 0 0;font-size:.72em;line-height:1.7;color:var(--ink)}
+.tl-points li{position:relative;padding-left:1.15em;text-align:justify}
+.tl-points li + li{margin-top:.2em}
+.tl-points li::before{content:"✦";position:absolute;left:0;top:0;
+  color:var(--gold-dim);font-size:.85em}
+
+/* ── 翻頁熱區(左右側 10%,底部往上 80%) ── */
+.flip-zone{
+  position:absolute; bottom:0; height:80%; width:10%;
+  /* 【2026-07-20】需高於 goTo() 飛行中 sheet 的 300+,否則動畫期間熱區被
+     整張書頁蓋住,點了完全沒反應 */
+  z-index:400; cursor:pointer;
+  /* 【2026-07-20】與 .face 一致:水平手勢留給滑動翻頁,垂直仍可捲動頁內文字 */
+  touch-action:pan-y pinch-zoom;
+}
+.flip-zone.next{right:0}
+.flip-zone.prev{left:-100%}
+.flip-zone[hidden]{display:none}
+.fz-arrow{
+  position:absolute; top:37.5%;              /* 對應整頁的垂直置中 */
+  font-size:1.35em; color:var(--gold-dim);
+  opacity:0; pointer-events:none;
+  transition:opacity .3s ease, text-shadow .3s ease;
+}
+.flip-zone.next .fz-arrow{right:calc(var(--pw) * .05); transform:translate(50%,-50%)}
+.flip-zone.prev .fz-arrow{left: calc(var(--pw) * .05); transform:translate(-50%,-50%)}
+@media (hover:hover) and (pointer:fine){
+  .flip-zone:hover .fz-arrow{opacity:1; text-shadow:0 0 10px rgba(201,164,92,.55)}
+}
+
+/* ── 手機單頁模式 ─────────────────────────── */
+/* 【2026-07-28】條件須與 book.js 的 MQ_SINGLE、ambient.js 逐字相同(為何加
+   pointer:coarse 見 book.js 同日註解)。此處尤其不能漏 —— 若 CSS 仍在
+   720px 就套用單頁的 --pw(90vw),而 JS 因 pointer:fine 排的是雙頁,
+   單頁寬 90vw × 2 會直接撐破視窗。 */
+@media (max-width:720px) and (pointer:coarse){
+  :root{ --pw: min(90vw, calc(88vh / 1.42)); }
+  .cover .sigil{display:none}   /* 手機版不渲染封面法陣 */
+}
+.mode-single .book.open{ transform:none; }          /* 單頁不需位移置中 */
+.mode-single .base{
+  left:-7px; width:calc(100% + 14px); border-radius:12px;
+}
+.mode-single .base::before{ display:none; }
+.mode-single .base::after{ right:7px; width:10px; }
+/* ── 【2026-07-20 真機破圖修復】單頁模式的合成層設定 ──────────
+   回報症狀:翻頁瞬間當前頁整張空白透明(直接看到下一頁)、有時只剩上半頁。
+   兩者都不是翻頁邏輯的問題(實測 .spent 在 55% 時已轉到 152°,遠過 90°,
+   不可能造成提早消失),而是合成層的組合在行動裝置 GPU 上失敗:
+
+   (a) 巢狀 3D:.sheet 是 preserve-3d、裡面 .face 又各自 backface-visibility:hidden,
+       再加上飛行中的 will-change:transform。單頁模式一張 sheet 只有一面,
+       根本不需要 preserve-3d —— 巢狀 3D 會讓背面裁切算在錯誤的矩陣上,
+       整張 face 從頭到尾被裁掉,就是「一翻就空白透明」。
+       改成 flat,並把 backface-visibility 移到會旋轉的 .sheet 自己身上
+       (即一般 flip-card 的標準寫法:單一 3D 元素,不巢狀)。
+   (b) 20 個捲動層:原本 20 頁全是 overflow-y:auto + -webkit-overflow-scrolling:touch,
+       但實測只有 3 頁真的放不下。legacy 的加速捲動層在 3D 旋轉時常常
+       只光柵化到一半 —— 就是「只剩上半頁」。 */
+.mode-single .sheet{
+  transform-style:flat;
+  -webkit-backface-visibility:hidden; backface-visibility:hidden;
+}
+.mode-single .face{
+  border-radius:8px;
+  overflow:hidden;                 /* 預設不當捲動容器 */
+  /* 【2026-07-20】只把垂直平移交給瀏覽器,水平手勢留給滑動翻頁 —— 這樣
+     touchmove 不必 preventDefault 就能穩定分流,也不會誤鎖到捲動。
+     保留 pinch-zoom,不剝奪雙指縮放。 */
+  touch-action:pan-y pinch-zoom;
+  /* 原生捲軸隱藏,改由 .scroll-thumb 畫燙金細軸(iOS 的 overlay 捲軸
+     基本上不吃 ::-webkit-scrollbar 樣式,自繪才能兩邊長得一樣) */
+  scrollbar-width:none;
+}
+.mode-single .face::-webkit-scrollbar{ width:0; height:0; }
+/* 只有真的放不下的頁才升級成捲動容器(由 fit-page.js 量測後掛上) */
+.mode-single .face.scrollable{ overflow-y:auto; }
+/* 翻頁飛行中一律不要捲動層:旋轉 + 加速捲動層同時存在最容易畫壞 */
+.mode-single .sheet.flying .face{ overflow:hidden; }
+
+/* ── 燙金細捲軸(單頁模式頁內捲動指示) ──
+   只有 3/20 頁會超出一頁,故做成「捲動時浮現、停手後淡出」。
+   位置:
+   - 不能放進 .face —— .face 自己是捲動容器,放裡面會跟著內容一起捲走。
+   - 也不能放進 .book —— .book 是 transform-style:preserve-3d,子層改以 3D 深度
+     排序,z-index 失效(實測 z-index:260 仍被 z-index:13 的 .face 蓋住)。
+   故掛在 <body> 下用 position:fixed,座標由 JS 依 .face 的 rect 計算。 */
+.scroll-thumb{
+  position:fixed; width:3px; border-radius:2px;
+  /* 【2026-07-20】原本用亮金(#e8c98a)畫,實測在羊皮紙(#efe3c3)上幾乎看不見
+     —— 兩者明度太接近。改用深一階的古銅金,並補一道淺色內緣當高光,
+     才有「燙金壓在紙上」的立體感。 */
+  background:linear-gradient(180deg, #b08e4a, #7d6437);
+  box-shadow:0 0 5px rgba(64,48,30,.3), inset 0 0 0 1px rgba(240,214,156,.45);
+  z-index:300; pointer-events:none;
+  opacity:0; transition:opacity .45s ease;
+}
+.scroll-thumb.on{ opacity:.8; }
+.scroll-thumb[hidden]{ display:none; }
+body:not(.mode-single) .scroll-thumb{ display:none; }
+.mode-single .face.front::after{
+  background:linear-gradient(90deg,rgba(70,45,15,.2),rgba(70,45,15,0) 7%);
+}
+.mode-single .sheet.flipped{ pointer-events:none; }  /* 翻走的頁不攔截觸控 */
+/* 【2026-07-21】手機的翻頁熱區與 ❮ ❯ 箭頭已整組移除(book.js 的 build() 不再產生),
+   改為一律滑動翻頁,原本針對熱區的手機樣式因此一併刪除。 */
+
+/* ── 首次造訪:燙金燃燒開場 ───────────────── */
+/* 【2026-07 canvas 化】火線/光暈/火花改由 <canvas class="burn-canvas"> 繪製
+   (src/scripts/burn-intro.js)。原 SVG stroke + 雙層 drop-shadow filter 與
+   高頻 DOM 火花每幀重繪,行動裝置 GPU 上會卡頓破圖;CSS 只保留便宜的
+   一次性動畫:文字 mask 揭示、邊框/角飾/分隔線/提示淡入。
+   各元素以 translateZ(0) 提升為獨立合成層,重繪範圍限縮在元素自身。 */
+.burn-canvas{position:absolute; inset:0; width:100%; height:100%;
+  pointer-events:none; z-index:6}
+.igniting{transform:translateZ(0)}
+
+.igniting .cover-frame{border-color:transparent; outline-color:transparent;
+  animation:frameIn 1.3s 1.8s forwards}
+@keyframes frameIn{to{border-color:var(--gold-dim); outline-color:rgba(201,164,92,.35)}}
+.igniting .cover-frame i{opacity:0; animation:burnFade .8s 2.6s forwards}
+.igniting .sigil{opacity:0;
+  animation:sigilIn 1.8s 2.2s forwards, sigilSpin 140s linear infinite}
+@keyframes sigilIn{to{opacity:.11}}
+@keyframes burnFade{
+  0%{opacity:0; color:#ff9a3c}
+  55%{opacity:1; color:#ffb066}
+  100%{opacity:1; color:var(--gold)}}
+
+.igniting :is(.latin, h1, .owner){
+  transform:translateZ(0);
+  -webkit-mask-image:linear-gradient(100deg,#000 42%,transparent 58%);
+  mask-image:linear-gradient(100deg,#000 42%,transparent 58%);
+  -webkit-mask-size:280% 100%; mask-size:280% 100%;
+  -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  animation:burnIn 1.5s cubic-bezier(.5,.05,.45,.95) both}
+.igniting .latin{animation-delay:.5s}
+.igniting h1{animation-delay:.8s}
+.igniting .owner{animation-delay:1.2s}
+@keyframes burnIn{
+  0%{-webkit-mask-position:120% 0; mask-position:120% 0; color:#3d2412}
+  35%{color:#ff9a3c}
+  100%{-webkit-mask-position:0% 0; mask-position:0% 0}}
+
+.igniting .rule{transform:scaleX(0); animation:ruleIn 1s 2s forwards}
+@keyframes ruleIn{
+  0%{transform:scaleX(0);
+     background:linear-gradient(90deg,transparent,#ff9a3c,transparent)}
+  100%{transform:scaleX(1);
+     background:linear-gradient(90deg,transparent,var(--gold),transparent)}}
+
+.igniting .hint{opacity:0;
+  animation:hintIn .9s 3.4s forwards, hintPulse 2.6s 4.3s ease-in-out infinite}
+@keyframes hintIn{to{opacity:.45}}
+
+/* 【2026-07-28 經使用者要求】移除 prefers-reduced-motion 的全域降級。
+   原本是:
+     @media (prefers-reduced-motion:reduce){
+       *{animation:none!important;transition-duration:.05s!important}
+     }
+   移除的兩個理由:
+   (a) 這條通則連「功能性轉場」一起砍 —— .sheet 的 180° 翻頁被壓成 50ms,
+       畫面上是瞬間跳頁,使用者判斷不出書翻到哪一頁,觀感是「壞掉」而非
+       「靜態設計」。要保留降級模式的話得分開處理裝飾動畫與翻頁轉場,
+       不能用 * 一刀切。
+   (b) Windows 上「效能選項 → 調整成最佳效能」也會讓瀏覽器回報 reduce,
+       那批使用者只是想讓電腦跑順,並非有前庭需求 —— 此訊號在 Windows
+       上雜訊過高,誤傷面大於保護面。
+   代價:前庭功能障礙的訪客會看到完整動態。本站的效果多為低振幅
+   (opacity 呼吸、140s 一圈的法陣、緩慢粒子),風險最高的是首訪的
+   燙金燃燒開場。若日後要改回尊重此偏好,正確做法是只關裝飾性的
+   無限迴圈動畫與開場,並把翻頁轉場縮到 ~300ms(同時調 book.js 的 T)。*/
+
+/* ── 【遷移後修補】手機翻頁破圖 ─────────────────
+   行動瀏覽器上,.face 同時是捲動容器(overflow-y:auto)又被 3D 旋轉時,
+   backface-visibility:hidden 的合成可能失效,已翻走的頁面會在動畫期間閃現。
+   對策:單頁模式下,翻走的 sheet 整張隱藏。
+   【2026-07-20 修正】原本用 `.flipped{visibility:hidden; transition:… visibility 0s
+   var(--flip-dur)}` 靠 CSS delay 計時,但連翻時 JS 會覆寫時長、delay 卻寫死,
+   兩邊對不上導致翻走的頁以透明狀態卡在最上層近 1 秒(看得到後面好幾頁)。
+   現改由 book.js 在轉過 90° 時掛上 .spent,時序單一來源在 JS。
+   will-change 也改成只在飛行中由 JS 掛,避免手機同時常駐 20 個合成層。 */
+.mode-single .sheet.spent{ visibility:hidden; }

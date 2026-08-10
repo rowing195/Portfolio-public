@@ -1,0 +1,10 @@
+Add public portfolio template, personal data replaced with placeholders
+
+Forked from the private Astro portfolio (rowing195/MyPortfolio). Name,
+bio, work history, and real project entries are replaced with generic
+placeholders so this can be shared as an open-source template.
+
+- Configure astro.config.mjs for GitHub Pages (site/base path)
+- Fix favicon href to respect the base path
+- Add GitHub Actions workflow to auto-deploy on push to main
+- Add CONTENT-GUIDE.md documenting how to fill in the template

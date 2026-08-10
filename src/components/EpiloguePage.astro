@@ -1,0 +1,19 @@
+---
+interface Props {
+  epilogue: string;
+}
+const { epilogue } = Astro.props;
+---
+
+<section>
+  <div style="margin:auto;text-align:center">
+    <div class="chapter-no">EPILOGUE</div>
+    <div class="ornament" style="margin-top:1em">❦</div>
+    <p class="body" style="text-align:center">
+      {epilogue.trim().split('\n').map((l, i) => <>{i > 0 && <br />}{l}</>)}
+    </p>
+    <br />
+    <button class="toc-btn" style="position:static" data-goto="0">闔上此書 · 回到封面</button>
+  </div>
+  <div class="pageno">· Finis ·</div>
+</section>

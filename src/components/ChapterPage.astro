@@ -1,0 +1,22 @@
+---
+interface Props {
+  no: string;
+  name: string;
+  ornament: string;
+  tagline: string;
+  pageno: string;
+}
+const { no, name, ornament, tagline, pageno } = Astro.props;
+---
+
+<section data-toc-btn>
+  <div style="margin:auto;text-align:center">
+    <div class="chapter-no" set:html={no.split(' ').join('&nbsp;')} />
+    <h3 class="chapter">{name}</h3>
+    <div class="ornament">─────&nbsp;{ornament}&nbsp;─────</div>
+    <p class="body" style="text-align:center;color:var(--ink-soft)">
+      {tagline.trim().split('\n').map((l, i) => <>{i > 0 && <br />}{l}</>)}
+    </p>
+  </div>
+  <div class="pageno">· {pageno} ·</div>
+</section>

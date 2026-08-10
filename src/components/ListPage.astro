@@ -1,0 +1,58 @@
+---
+interface Props {
+  eyebrow: string;
+  entries: {
+    title: string;
+    summary: string;
+    tags: string[];
+    /** 摘要跨頁編號;undefined 表示佔位條目(不可點擊) */
+    goto?: number;
+    /** 單頁模式的目標頁碼(選填)。goto 寫的是「跨頁編號」,引擎在單頁
+        模式會換算成該跨頁的左頁(navTarget:2n-1);若目標其實在右頁,
+        就得用這個覆寫,否則手機上會落到隔壁那一頁。 */
+    gotoSingle?: number;
+  }[];
+  pageno: string;
+  /** 'stacked':標題/摘要/標籤各佔一行,條目較高。條目數少的章節(如
+      Chapter III 只有兩個)用它填滿版面;條目多的章節不要開,會撐爆頁面。
+      注意 class 必須掛在 .entry 上,不能掛在 <section>:book.js 的 makeFace
+      只搬 section 的 childNodes,section 自身的 class 會被丟掉。 */
+  variant?: 'stacked';
+}
+const { eyebrow, entries, pageno, variant } = Astro.props;
+const mod = variant === 'stacked' ? ' stacked' : '';
+---
+
+<section data-toc-btn>
+  <div class="eyebrow">{eyebrow}</div>
+  {
+    entries.map((e) =>
+      e.goto != null ? (
+        <button class={`entry${mod}`} data-goto={e.goto} data-goto-single={e.gotoSingle}>
+          <span class="t">{e.title}</span>
+          <span class="s">{e.summary}</span>
+          {e.tags.length > 0 && (
+            <span class="tags">
+              {e.tags.map((t) => (
+                <span class="tag">{t}</span>
+              ))}
+            </span>
+          )}
+        </button>
+      ) : (
+        <div class={`entry static${mod}`}>
+          <span class="t">{e.title}</span>
+          <span class="s">{e.summary}</span>
+          {e.tags.length > 0 && (
+            <span class="tags">
+              {e.tags.map((t) => (
+                <span class="tag">{t}</span>
+              ))}
+            </span>
+          )}
+        </div>
+      )
+    )
+  }
+  <div class="pageno">· {pageno} ·</div>
+</section>
